@@ -2,13 +2,19 @@
 
 namespace Witty\LaravelDbBackup\Commands;
 
-use Aws\Laravel\AwsFacade as AWS;
+use Aws\S3\S3Client;
+use League\Flysystem\AwsS3v3\AwsS3Adapter;
+use League\Flysystem\Filesystem;
+
+
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputArgument;
 use Witty\LaravelDbBackup\Commands\Helpers\BackupFile;
 use Witty\LaravelDbBackup\Commands\Helpers\BackupHandler;
+
+use App\Helpers\Classes\S3;
 
 class BackupCommand extends BaseCommand 
 {
@@ -124,13 +130,20 @@ class BackupCommand extends BaseCommand
 	 */
 	protected function uploadS3()
 	{
-		$bucket = $this->option('upload-s3');
-		$s3 = AWS::get('s3');
-		$s3->putObject([
-			'Bucket'     => $bucket,
-			'Key'        => $this->getS3DumpsPath() . '/' . $this->fileName,
-			'SourceFile' => $this->filePath,
-		]);
+        $s3_client = new S3Client([
+						'credentials' => [
+								'key'    => env('S3_KEY'),
+								'secret' => env('S3_SECRET')
+							],
+							'region' => env('S3_REGION'),
+							'version' => 'latest',
+						]);
+
+       	$s3_bucket = env('S3_BACKUP_BUCKET');
+       	$s3_adapter = new AwsS3Adapter($s3_client, $s3_bucket);
+       	$s3_filesystem = new Filesystem($s3_adapter);
+
+       	$s3_filesystem->put($this->fileName, file_get_contents($this->filePath));
 	}
 
 	/**
