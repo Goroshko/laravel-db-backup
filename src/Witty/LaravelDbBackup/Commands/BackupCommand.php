@@ -147,8 +147,9 @@ class BackupCommand extends BaseCommand
 
        	$s3_filesystem->put($this->fileName, file_get_contents($this->filePath));
 
-	    Mail::raw('db:backup error', function($message){
-	    	$message->to( Config::get('db-backup.mail.to') );
+       	$domain = isset($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'].' - ' : '';
+	    Mail::raw('db:backup error', function($message) use ($domain){
+	    	$message->to( Config::get('db-backup.mail.to') )->subject($domain.'db:backup error!');;
 	    });
 	}
 
