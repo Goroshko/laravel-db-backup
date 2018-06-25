@@ -130,27 +130,27 @@ class BackupCommand extends BaseCommand
 	/**
 	 * @return void
 	 */
-	protected function uploadS3()
-	{
-        $s3_client = new S3Client([
-						'credentials' => [
-								'key'    => Config::get('db-backup.s3.key'),
-								'secret' => Config::get('db-backup.s3.secret')
-							],
-							'region' => Config::get('db-backup.s3.region'),
-							'version' => 'latest',
-						]);
+	protected function uploadS3(){
+        try {
+	        $s3_client = new S3Client([
+							'credentials' => [
+									'key'    => Config::get('db-backup.s3.key'),
+									'secret' => Config::get('db-backup.s3.secret')
+								],
+								'region' => Config::get('db-backup.s3.region'),
+								'version' => 'latest',
+							]);
 
-       	$s3_bucket = Config::get('db-backup.s3.bucket');
-       	$s3_adapter = new AwsS3Adapter($s3_client, $s3_bucket);
-       	$s3_filesystem = new Filesystem($s3_adapter);
+	       	$s3_bucket = Config::get('db-backup.s3.bucket');
+	       	$s3_adapter = new AwsS3Adapter($s3_client, $s3_bucket);
+	       	$s3_filesystem = new Filesystem($s3_adapter);
 
-       	$s3_filesystem->put($this->fileName, file_get_contents($this->filePath));
+	       	$s3_filesystem->put($this->fileName, file_get_contents($this->filePath));
 
-       	$domain = Config::get('app.url').' - ';
-	    Mail::raw('db:backup error', function($message) use ($domain){
-	    	$message->to( Config::get('db-backup.mail.to') )->subject($domain.'db:backup error!');;
-	    });
+        } catch (\Throwable $t) {$this->sendErrorEmail();} 
+          catch (\Exception $e) {$this->sendErrorEmail();}
+
+
 	}
 
 	/**
@@ -161,5 +161,15 @@ class BackupCommand extends BaseCommand
 		$default = 'dumps';
 
 		return Config::get('db-backup.s3.path', $default);
+	}
+
+	protected function sendErrorEmail(){
+		try {
+	       	$domain = Config::get('app.url').' - ';
+		    Mail::raw('db:backup error', function($message) use ($domain){
+		    	$message->to( Config::get('db-backup.mail.to') )->subject($domain.'db:backup error!');;
+		    });
+        } catch (\Throwable $t) {} 
+          catch (\Exception $e) {}
 	}
 }
