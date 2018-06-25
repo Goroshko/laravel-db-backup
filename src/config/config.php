@@ -11,7 +11,14 @@ return [
 	],
 
 	's3' => [
-		'path' => ''
+		'key' => '',
+		'secret' => '',
+		'region' => '',
+		'bucket' => '',
+	],
+
+	'mail' => [
+		'to' => ''
 	],
 
     'compress' => false,

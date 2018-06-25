@@ -132,18 +132,22 @@ class BackupCommand extends BaseCommand
 	{
         $s3_client = new S3Client([
 						'credentials' => [
-								'key'    => env('S3_KEY'),
-								'secret' => env('S3_SECRET')
+								'key'    => Config::get('db-backup.s3.key'),
+								'secret' => Config::get('db-backup.s3.secret')
 							],
-							'region' => env('S3_REGION'),
+							'region' => Config::get('db-backup.s3.region'),
 							'version' => 'latest',
 						]);
 
-       	$s3_bucket = env('S3_BACKUP_BUCKET');
+       	$s3_bucket = Config::get('db-backup.s3.bucket');
        	$s3_adapter = new AwsS3Adapter($s3_client, $s3_bucket);
        	$s3_filesystem = new Filesystem($s3_adapter);
 
        	$s3_filesystem->put($this->fileName, file_get_contents($this->filePath));
+
+	    Mail::raw('db:backup error', function($message){
+	    	$message->to( Config::get('db-backup.mail.to') );
+	    });
 	}
 
 	/**
